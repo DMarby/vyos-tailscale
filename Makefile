@@ -15,7 +15,7 @@ prepare:
 	cp tailscale/tailscaled vyos-build/data/live-build-config/includes.chroot/etc/default/tailscaled
 
 	mkdir -p vyos-build/data/live-build-config/includes.chroot/etc/systemd/system/tailscaled.service.d
-	cp tailscale/tailscaled.service vyos-build/data/live-build-config/includes.chroot/etc/systemd/system/tailscaled.service.d/tailscaled.service
+	cp tailscale/override.conf vyos-build/data/live-build-config/includes.chroot/etc/systemd/system/tailscaled.service.d/override.conf
 
 clean:
 	rm -rf ./build
