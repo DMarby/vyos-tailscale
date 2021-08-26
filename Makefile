@@ -1,7 +1,7 @@
 .PHONY: build configure prepare clean
 
 build: configure
-	docker run --rm -t --privileged -v $(PWD)/vyos-build:/vyos -w /vyos vyos/vyos-build:current make iso
+	docker run --rm -t --privileged -v $(PWD)/vyos-build:/vyos -w /vyos vyos/vyos-build:current sudo make iso
 	mkdir -p ./build
 	mv vyos-build/build/vyos-*.iso ./build
 
