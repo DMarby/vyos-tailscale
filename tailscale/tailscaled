@@ -5,4 +5,4 @@
 PORT="41641"
 
 # Extra flags you might want to pass to tailscaled.
-FLAGS="--state=/config/tailscale/tailscaled.state"
+FLAGS="--statedir=/config/tailscale/tailscaled.state"
