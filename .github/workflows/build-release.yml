@@ -1,0 +1,66 @@
+---
+name: VyOS Rolling + Tailscale
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: 0 0 * * 0
+
+# Some code borrowed from https://github.com/onedr0p/vyos/blob/main/.github/workflows/rolling.yml
+env:
+  VYOS_URL: https://github.com/vyos/vyos-build
+  VYOS_BRANCH: current
+  VYOS_ARCH: amd64
+  VYOS_BUILD_BY: github-actions@github.com
+  VYOS_BUILD_TYPE: release
+  VYOS_VERSION: 1.4-rolling
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    container:
+      image: vyos/vyos-build:current
+      options: --privileged
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Setup Tools
+        run: sudo apt install -y make
+
+      - name: Run setup actions
+        run: make prepare
+
+      - name: Setup variables
+        id: vars
+        run: |
+          build_date=$(date +%Y%m%d%H%M)
+          echo "tag-name=${{ env.VYOS_VERSION }}-${build_date}" >> "$GITHUB_OUTPUT"
+          echo "iso-name=${{ env.VYOS_VERSION }}-${build_date}-${{ env.VYOS_ARCH }}" >> "$GITHUB_OUTPUT"
+      
+      - name: Configure
+        working-directory: vyos-build
+        run: |
+          ./build-vyos-image iso \
+              --architecture ${{ env.VYOS_ARCH }} \
+              --build-by ${{ env.VYOS_BUILD_BY }} \
+              --build-type ${{ env.VYOS_BUILD_TYPE }} \
+              --build-comment "VyOS with Tailscale" \
+              --version ${{ steps.vars.outputs.tag-name }} \
+              --custom-apt-key ../tailscale.gpg \
+              --custom-apt-entry "deb https://pkgs.tailscale.com/stable/debian bullseye main" \
+              --custom-package "tailscale"
+  
+      - uses: ncipollo/release-action@v1
+        with:
+          tag: "v${{ steps.vars.outputs.tag-name }}"
+          artifacts: "./vyos-build/build/vyos-${{ steps.vars.outputs.iso-name }}.iso"
+          artifactErrorsFailBuild: true
+          body: |
+            Official VyOS Changelog:
+            https://docs.vyos.io/en/latest/changelog/1.4.html
