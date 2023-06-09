@@ -35,7 +35,7 @@ jobs:
           submodules: 'recursive'
 
       - name: Setup Tools
-        run: sudo apt install -y make
+        run: sudo apt install -y make ansible python
 
       - name: Run setup actions
         run: make prepare
@@ -59,11 +59,27 @@ jobs:
               --custom-apt-key ../tailscale.gpg \
               --custom-apt-entry "deb https://pkgs.tailscale.com/stable/debian bullseye main" \
               --custom-package "tailscale"
-  
+
+      - name: Clone ansible playbooks
+        uses: actions/checkout@v3
+        with:
+          path: vyos-vm-images
+          repository: 'vyos/vyos-vm-images'
+
+      - name: Run ansible playbook to generate qemu image
+        working-directory: vyos-vm-images
+        run: |
+          ansible-playbook qemu.yml -e "iso_local=../vyos-build/build/vyos-${{ steps.vars.outputs.iso-name }}.iso" \
+                -e disk_size=2 -e cloud_init=true -e cloud_init_ds=NoCloud,ConfigDrive,None -e guest_agent=qemu \
+                -e enable_dhcp=true -e enable_ssh=true
+          mv /tmp/vyos-*-qemu.qcow2 "./vyos-qemu-v${{ steps.vars.outputs.tag-name }}.qcow2"
+
       - uses: ncipollo/release-action@v1
         with:
           tag: "v${{ steps.vars.outputs.tag-name }}"
-          artifacts: "./vyos-build/build/vyos-${{ steps.vars.outputs.iso-name }}.iso"
+          artifacts: 
+            - "./vyos-build/build/vyos-${{ steps.vars.outputs.iso-name }}.iso"
+            - "./vyos-vm-images/vyos-qemu-v${{ steps.vars.outputs.tag-name }}.qcow2"
           artifactErrorsFailBuild: true
           body: |
             Official VyOS Changelog:
